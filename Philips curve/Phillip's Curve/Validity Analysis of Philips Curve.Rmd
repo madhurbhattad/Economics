@@ -1,0 +1,449 @@
+---
+title: '"Validity analysis of Philips curve"'
+author: "Madhur"
+output: pdf_document
+---
+
+<span style="display:block; height: 0.6cm;"></span>
+
+<span style="display:block; height: 0.4cm;"></span>
+
+<h2><b>Data description</b></h2>
+
+<span style="display:block; height: 0.1cm;"></span>
+
+The data file "Phillips Curve Data.csv" contains quarterly values for:
+a) Core prices index: CPILFESL - Consumer Price Index for All Urban Consumers: All Items Less Food and Energy, seasonally adjusted
+b) Employment cost index: ECIALLCIV - Employment Cost Index: Total compensation: All Civilian, seasonally adjusted
+c) GDP deflator index: GDPDEF - Gross Domestic Product: Implicit Price Deflator
+d) Unemployment rate: UNRATE - Civilian Unemployment Rate, seasonally adjusted
+
+The first three series are price indices based on different prices. Q1 data is the index value for the first quarter of the designated year and so on. To get the inflation rate during the Q1, we take the Q1 number divided by the Q4 number of the prior year, and subtract 1. To get inflation for the second quarter, we take the Q2 index value divided by the Q1 index value and subtract 1. To get the inflation rate for the year, we take the index value for Q4 of the year divided by the index value for Q4 of the prior year and subtract 1.
+
+<span style="display:block; height: 0.1cm;"></span>
+
+```{r Reading data}
+#Read data 
+Philips <- read.csv("Phillips Curve Data.csv", header= TRUE)
+
+Philips <- as.data.frame(Philips)
+
+Philips[] <- lapply(Philips, gsub, pattern = "#N/A", replacement = "-1", fixed = TRUE)
+Philips2 <- data.frame(Philips[37:nrow(Philips),])
+
+#Inflation Q1/Q4 - 1
+Philips.v <- as.matrix(Philips2)
+
+Inflation <- data.frame(matrix(NA,ncol=4))
+colnames(Inflation) <- c("Q1","Q2", "Q3","Q4")
+
+Inflation.1956Q4 <- as.numeric((Philips.v[,2][1]))
+
+Inflation[1,"Q1"] = as.numeric((Philips.v[,2][1]))/ as.numeric(Inflation.1956Q4) - 1
+Inflation[1,"Q2"] = as.numeric((Philips.v[,2][2]))/ as.numeric((Philips.v[,2][1])) - 1
+Inflation[1,"Q3"] = as.numeric((Philips.v[,2][3]))/ as.numeric((Philips.v[,2][2])) - 1
+Inflation[1,"Q4"] = as.numeric((Philips.v[,2][4]))/ as.numeric((Philips.v[,2][3])) - 1
+
+#Q1,Q2,Q3,Q4 inflations
+for (i in 1:((floor(length(Philips.v[,1]))/4) - 1)) 
+{
+  if (Philips.v[,2][i] == - 1) 
+  {
+    Inflation[i+1,"Q1"] = 1
+    Inflation[i+1,"Q2"] = 1
+    Inflation[i+1,"Q3"] = 1
+    Inflation[i+1,"Q4"] = 1
+  } 
+  else 
+  {
+    Inflation[i+1,"Q1"] = as.numeric((Philips.v[,2][4*i + 1]))/as.numeric((Philips.v[,2][4*i])) - 1
+    Inflation[i+1,"Q2"] = as.numeric((Philips.v[,2][4*i + 2]))/as.numeric((Philips.v[,2][4*i + 1])) - 1
+    Inflation[i+1,"Q3"] = as.numeric((Philips.v[,2][4*i + 3]))/as.numeric((Philips.v[,2][4*i + 2])) - 1
+    Inflation[i+1,"Q4"] = as.numeric((Philips.v[,2][4*i + 4]))/as.numeric((Philips.v[,2][4*i])) - 1
+  }
+}
+
+dates <- c()
+
+for (i in 0:(nrow(Inflation)-1)) 
+{
+  dates = cbind(dates, as.character.Date(1957 + i))
+}
+rownames(Inflation) <- dates
+
+#Inflation, four quarters
+#print(Inflation)
+
+#Unemployment rate, four quarters and average
+Unemployment <- data.frame(matrix(NA,ncol=5))
+colnames(Unemployment) <- c("Q1","Q2", "Q3","Q4","YEAR")
+
+Philips.v[,5] <- as.numeric(sub("%", "",Philips.v[,5],fixed=TRUE))/100
+
+#Q1,Q2,Q3,Q4 unemployment
+for (i in 0:((floor(length(Philips.v[,1])/4)) - 1)) 
+{
+  Unemployment[i+1,"Q1"] = as.numeric((Philips.v[,5][4*i + 1]))
+  Unemployment[i+1,"Q2"] = as.numeric((Philips.v[,5][4*i + 2]))
+  Unemployment[i+1,"Q3"] = as.numeric((Philips.v[,5][4*i + 3]))
+  Unemployment[i+1,"Q4"] = as.numeric((Philips.v[,5][4*i + 4]))
+  Unemployment[i+1,"YEAR"]=(Unemployment[i+1,"Q1"]+Unemployment[i+1,"Q2"]+Unemployment[i+1,"Q3"]+Unemployment[i+1,"Q4"])/4 - 0.06
+}
+rownames(Unemployment) <- dates
+
+#Unemployment cost index, Core CPI, GDP Deflator
+CoreCPI <- data.frame(matrix(NA,ncol=5))
+colnames(CoreCPI) <- c("Q1","Q2", "Q3","Q4","YEAR")
+
+TotalCompensation <- data.frame(matrix(NA,ncol=5))
+colnames(TotalCompensation) <- c("Q1","Q2", "Q3","Q4","YEAR")
+
+GDPDeflator <- data.frame(matrix(NA,ncol=5))
+colnames(GDPDeflator) <- c("Q1","Q2", "Q3","Q4","YEAR")
+
+# Quarters
+for (i in 0:((floor(length(Philips.v[,1])/4)) - 1)) 
+{
+  CoreCPI[i+1,"Q1"] = as.numeric((Philips.v[,2][4*i + 1]))
+  CoreCPI[i+1,"Q2"] = as.numeric((Philips.v[,2][4*i + 2]))
+  CoreCPI[i+1,"Q3"] = as.numeric((Philips.v[,2][4*i + 3]))
+  CoreCPI[i+1,"Q4"] = as.numeric((Philips.v[,2][4*i + 4]))
+    
+  TotalCompensation[i+1,"Q1"] = as.numeric((Philips.v[,3][4*i + 1]))
+  TotalCompensation[i+1,"Q2"] = as.numeric((Philips.v[,3][4*i + 2]))
+  TotalCompensation[i+1,"Q3"] = as.numeric((Philips.v[,3][4*i + 3]))
+  TotalCompensation[i+1,"Q4"] = as.numeric((Philips.v[,3][4*i + 4]))
+  
+  GDPDeflator[i+1,"Q1"] = as.numeric((Philips.v[,4][4*i + 1]))
+  GDPDeflator[i+1,"Q2"] = as.numeric((Philips.v[,4][4*i + 2]))
+  GDPDeflator[i+1,"Q3"] = as.numeric((Philips.v[,4][4*i + 3]))
+  GDPDeflator[i+1,"Q4"] = as.numeric((Philips.v[,4][4*i + 4]))
+}
+rownames(CoreCPI) <- dates
+rownames(TotalCompensation) <- dates
+rownames(GDPDeflator) <- dates
+
+# Years
+for (i in 2:(nrow(CoreCPI)-1))
+{
+  CoreCPI[i+1,"YEAR"] = 100 *(CoreCPI[i+1,"Q4"]/CoreCPI[i,"Q4"] - CoreCPI[i,"Q4"]/CoreCPI[i-1,"Q4"])
+  TotalCompensation[i+1,"YEAR"] = 100 *(TotalCompensation[i+1,"Q4"]/TotalCompensation[i,"Q4"] - 
+                                          TotalCompensation[i,"Q4"]/TotalCompensation[i-1,"Q4"])
+  GDPDeflator[i+1,"YEAR"] = 100 *(GDPDeflator[i+1,"Q4"]/GDPDeflator[i,"Q4"] - GDPDeflator[i,"Q4"]/GDPDeflator[i-1,"Q4"])
+}
+
+```
+
+\pagebreak
+
+<h2><b>Data plots in 1980-1994</b></h2>
+
+Note that the 1980 unemployment rate is the average of the four 1980 values (Q1, Q2, Q3 and Q4), minus 6% and so forth.
+The author wants to make the point that the unemployment gap (positive when unemployment is higher that its natural level, negative when it is below its natural level) is approximately equal to the change in inflation rate but with opposite sign. 
+
+<span style="display:block; height: 0.1cm;"></span>
+
+```{r 1980-94 data plots, include=TRUE, warning=F, message=F}
+
+#plots
+p1 <- plot(y = Unemployment$YEAR[24:38], x = seq(1980,1994,1), xlab = "Years",
+           ylab = "Unemployment in percent", type= "l",main= "Unemployment Gap ")
+p2 <- plot(y = CoreCPI$YEAR[24:38], x = seq(1980,1994,1), xlab = "Years",
+           ylab = "Core CPI in percent", type= "l",main= "Core CPI")
+p3 <- plot(y = TotalCompensation$YEAR[24:38], x = seq(1980,1994,1), xlab = "Years",
+           ylab = "Employment cost index in percent", type= "l",main= "Total compensation")
+p4 <- plot(y = GDPDeflator$YEAR[24:38], x = seq(1980,1994,1), xlab = "Years",
+           ylab = "GDP Deflator in percent", type= "l",main= "GDP Deflator")
+```
+
+<span style="display:block; height: 0.4cm;"></span>
+
+\pagebreak
+
+<h2><b>Data plots in 1995-2016</b></h2>
+
+<span style="display:block; height: 0.1cm;"></span>
+
+<span style="display:block; height: 0.1cm;"></span>
+
+
+```{r 1995-2016 data plots, include=TRUE, warning=F, message=F}
+#plots for problem 4
+p01 <- plot(y = Unemployment$YEAR[39:60], x = seq(1995,2016,1), xlab = "Years",
+            ylab = "Unemployment in percent", type= "l",main= "Unemployment Gap ")
+p02 <- plot(y = CoreCPI$YEAR[39:60], x = seq(1995,2016,1), xlab = "Years",
+            ylab = "Core CPI in percent", type= "l",main= "Core CPI")
+p03 <- plot(y = TotalCompensation$YEAR[39:60], x = seq(1995,2016,1), xlab = "Years",
+            ylab = "Employment cost index in percent", type= "l",main= "Total compensation")
+p04 <- plot(y = GDPDeflator$YEAR[39:60], x = seq(1995,2016,1), xlab = "Years",
+            ylab = "GDP Deflator in percent", type= "l",main= "GDP Deflator")
+```
+
+
+\pagebreak
+
+
+<h2><b> Regression analysis from 1960-94 </b></h2>
+
+<span style="display:block; height: 0.1cm;"></span>
+
+We recreate the regression in table 1 of the paper (just the first regressions, not 1a, 1b or 1c). Dependent variable is the core inflation rate and independent values are 12 lagged quarterly values of the inflation rate, plus two lagged values of the unemployment rate. We use data for the dependent variable from 1960Q2 (that is, the core inflation index from 1960Q2 divided by the core inflation index from 1960Q1 minus 1; multiply all inflation rates by 4 to annualize and match the paper) to 1993Q4, 93 quarters in all. For the lagged inflation values for the first dependent variable, 1960Q2, use the inflation rates from 1957Q2 to 1960Q1, 12 quarters, plus the unemployment rates from 1960Q1 and 1959Q4. For each subsequent dependent variable, just move the independent variables up one quarter.
+
+Do the results seem reliable? What are they telling us? Do they support the author's contention that low unemployment leads to higher inflation? How about the contention that independent of the level of inflation, decreasing unemployment leads to higher inflation?
+
+<span style="display:block; height: 0.1cm;"></span>
+
+This time we do the regression of actual rate against unemployment rate (quarterly).
+
+There is a negative coefficient on the employment rate terms.
+
+This regression supports the idea that low unemployment leads to higher inflation.
+
+It also supports the idea that independent of the level of inflation, decreasing unemployment leads to higher inflation.
+
+<span style="display:block; height: 0.1cm;"></span>
+
+Divide the constant term by the sum of the two unemployment coefficients. Is this a good way to estimate the "non-accelerating-inflation rate of unemployment" or NAIRU?
+
+<span style="display:block; height: 0.1cm;"></span>
+
+This is not a good way to proceed. There is an intercept.
+
+We try different lags (1, 2, ..) for unemployment and inflations.
+
+We observe that the 3 first lags of inflation are significative (the seasonal adjustments might have caused the lag 8 to be that high).
+
+We observe that the coefficient in unemployment at lag 2 is positive, while the first one is negative. Therefore, not only high but also rising unemployment cause inflation to decrease.
+
+
+```{r, echo = FALSE}
+
+# Getting Individual vectors instead of data frame
+
+Q1Unemployment <- Unemployment$Q1
+Q2Unemployment <- Unemployment$Q2
+Q3Unemployment <- Unemployment$Q3
+Q4Unemployment <- Unemployment$Q4
+YEARUnemployment <- Unemployment$YEAR
+
+Q1CoreCPI <- CoreCPI$Q1
+Q2CoreCPI <- CoreCPI$Q2
+Q3CoreCPI <- CoreCPI$Q3
+Q4CoreCPI <- CoreCPI$Q4
+YEARCoreCPI <- CoreCPI$YEAR
+
+Q1TotalCompensation <- TotalCompensation$Q1
+Q2TotalCompensation <- TotalCompensation$Q2
+Q3TotalCompensation <- TotalCompensation$Q3
+Q4TotalCompensation <- TotalCompensation$Q4
+YEARTotalCompensation <- TotalCompensation$YEAR
+
+Q1GDPDeflator <- GDPDeflator$Q1
+Q2GDPDeflator <- GDPDeflator$Q2
+Q3GDPDeflator <- GDPDeflator$Q3
+Q4GDPDeflator <- GDPDeflator$Q4
+YEARGDPDeflator <- GDPDeflator$YEAR
+
+# Net Vectors that would be needed for regression
+UnemploymentTimeSeries <- vector(mode="numeric", length = 240)
+for(i in 1:60)
+{
+  UnemploymentTimeSeries[4*i-3] = Q1Unemployment[i]*100
+  UnemploymentTimeSeries[4*i-2] = Q2Unemployment[i]*100
+  UnemploymentTimeSeries[4*i-1] = Q3Unemployment[i]*100
+  UnemploymentTimeSeries[4*i]   = Q4Unemployment[i]*100
+}
+
+CoreCPITimeSeries <- vector(mode="numeric", length = 240)
+for(i in 1:60)
+{
+  CoreCPITimeSeries[4*i-3] = Q1CoreCPI[i]
+  CoreCPITimeSeries[4*i-2] = Q2CoreCPI[i]
+  CoreCPITimeSeries[4*i-1] = Q3CoreCPI[i]
+  CoreCPITimeSeries[4*i]   = Q4CoreCPI[i]
+}
+
+TotalCompensationTimeSeries <- vector(mode="numeric", length = 240)
+for(i in 1:60)
+{
+  TotalCompensationTimeSeries[4*i-3] = Q1TotalCompensation[i]
+  TotalCompensationTimeSeries[4*i-2] = Q2TotalCompensation[i]
+  TotalCompensationTimeSeries[4*i-1] = Q3TotalCompensation[i]
+  TotalCompensationTimeSeries[4*i]   = Q4TotalCompensation[i]
+}
+
+GDPDeflatorTimeSeries <- vector(mode="numeric", length = 240)
+for(i in 1:60)
+{
+  GDPDeflatorTimeSeries[4*i-3] = Q1GDPDeflator[i]
+  GDPDeflatorTimeSeries[4*i-2] = Q2GDPDeflator[i]
+  GDPDeflatorTimeSeries[4*i-1] = Q3GDPDeflator[i]
+  GDPDeflatorTimeSeries[4*i]   = Q4GDPDeflator[i]
+}
+
+# Regression on CoreCPI from 1961-94 along with 12 lagged values of CoreCPI and 2 lagged unemployment rates 
+
+Table1 <- lm(
+             CoreCPITimeSeries[13:152] ~ 
+               CoreCPITimeSeries[1:140] + CoreCPITimeSeries[2:141] + CoreCPITimeSeries[3:142] +
+               CoreCPITimeSeries[4:143] + CoreCPITimeSeries[5:144] + CoreCPITimeSeries[6:145] +
+               CoreCPITimeSeries[7:146] + CoreCPITimeSeries[8:147] + CoreCPITimeSeries[9:148] +
+               CoreCPITimeSeries[10:149] + CoreCPITimeSeries[11:150] + CoreCPITimeSeries[12:151] +
+               UnemploymentTimeSeries[11:150] + UnemploymentTimeSeries[12:151]
+            )
+Table1
+summary(Table1)
+
+```
+
+\pagebreak
+
+<h2><b> Regression analysis from 1995-2016</b></h2>
+
+<span style="display:block; height: 0.1cm;"></span>
+
+Now recreate the regression using data from 1994Q1 to the present. Do the results differ from above?
+
+<span style="display:block; height: 0.1cm;"></span>
+
+Ont this dataset, the fist lag is 0.09 and the second lag 0.40, which doesn't make a lot of sense.
+
+$R^2$ is very small (0.38), so the model doesn't explain a lot of the actual variance.
+
+It seems that arguments fall apart for this period from 1995. It doesn't prove neither does it disprove Philips curve.
+
+```{r, echo=FALSE}
+# Regression on CoreCPI from 1995-2016 along with 12 lagged values of CoreCPI and 2 lagged unemployment rates 
+
+Table2 <- lm(
+  CoreCPITimeSeries[165:240] ~ 
+    CoreCPITimeSeries[153:228] + CoreCPITimeSeries[154:229] + CoreCPITimeSeries[155:230] +
+    CoreCPITimeSeries[156:231] + CoreCPITimeSeries[157:232] + CoreCPITimeSeries[158:233] +
+    CoreCPITimeSeries[159:234] + CoreCPITimeSeries[160:235] + CoreCPITimeSeries[161:236] +
+    CoreCPITimeSeries[162:237] + CoreCPITimeSeries[163:238] + CoreCPITimeSeries[164:239] +
+    UnemploymentTimeSeries[163:238] + UnemploymentTimeSeries[164:239]
+)
+Table2
+summary(Table2)
+```
+
+
+\pagebreak
+
+<h2><b> Regression analysis from 1961-94, leaving the unemployment rates</b></h2>
+
+<span style="display:block; height: 0.1cm;"></span>
+
+We redo the fit from 1961-94 leaving out the two lagged unemployment rates. Is the fit materially worse? How does it differ?
+
+<span style="display:block; height: 0.1cm;"></span>
+
+$R^2$ diminishes a little bit, lag 1 goes up.
+
+This is still a good fit.
+
+```{r, echo=FALSE}
+# Regression on CoreCPI from 1961-94 along with 12 lagged values of CoreCPI 
+
+Table3 <- lm(
+  CoreCPITimeSeries[13:152] ~ 
+    CoreCPITimeSeries[1:140] + CoreCPITimeSeries[2:141] + CoreCPITimeSeries[3:142] +
+    CoreCPITimeSeries[4:143] + CoreCPITimeSeries[5:144] + CoreCPITimeSeries[6:145] +
+    CoreCPITimeSeries[7:146] + CoreCPITimeSeries[8:147] + CoreCPITimeSeries[9:148] +
+    CoreCPITimeSeries[10:149] + CoreCPITimeSeries[11:150] + CoreCPITimeSeries[12:151]
+)
+Table3
+summary(Table3)
+
+```
+
+
+\pagebreak
+
+
+<h2><b> Recreating CPI for 1961-94 using the first regression result</b></h2>
+
+<span style="display:block; height: 0.1cm;"></span>
+
+We observe a constant lag on this graph. Practically, the model is right but a little too late.
+
+
+```{r, echo=FALSE}
+# Recreting Core CPI for 1961-94
+recCoreCPI <- vector(mode= "numeric", length = 140)
+for(i in 1:140)
+{
+  recCoreCPI[i] = Table1$coefficients[1] 
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[2]*CoreCPITimeSeries[i]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[3]*CoreCPITimeSeries[i+1]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[4]*CoreCPITimeSeries[i+2]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[5]*CoreCPITimeSeries[i+3]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[6]*CoreCPITimeSeries[i+4]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[7]*CoreCPITimeSeries[i+5]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[8]*CoreCPITimeSeries[i+6]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[9]*CoreCPITimeSeries[i+7]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[10]*CoreCPITimeSeries[i+8]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[11]*CoreCPITimeSeries[i+9]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[12]*CoreCPITimeSeries[i+10]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[13]*CoreCPITimeSeries[i+11]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[13]*UnemploymentTimeSeries[i+10]
+  recCoreCPI[i] = recCoreCPI[i] + Table1$coefficients[13]*UnemploymentTimeSeries[i+11]
+}
+
+plot(y= recCoreCPI, x = 1:140, type ='l', col="red")
+points(y=CoreCPITimeSeries[13:152], x=1:140, type ='l', col="blue")
+
+```
+
+
+\pagebreak
+
+<h2><b>Recreating CPI for 1995-2016 using the first regression result</b></h2>
+
+<span style="display:block; height: 0.1cm;"></span>
+
+This is worse than the previous one. The model captures some general trends but there's also a lag and the model doesn't work out of sample.
+
+```{r, echo=FALSE}
+# Recreating CoreCPI for 95-2016 using reg data for 61-94
+laggedrecCoreCPI <- vector(mode= "numeric", length = 76)
+for(i in 1:76)
+{
+  j=152+i
+  laggedrecCoreCPI[i] = Table1$coefficients[1] 
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[2]*CoreCPITimeSeries[j]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[3]*CoreCPITimeSeries[j+1]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[4]*CoreCPITimeSeries[j+2]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[5]*CoreCPITimeSeries[j+3]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[6]*CoreCPITimeSeries[j+4]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[7]*CoreCPITimeSeries[j+5]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[8]*CoreCPITimeSeries[j+6]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[9]*CoreCPITimeSeries[j+7]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[10]*CoreCPITimeSeries[j+8]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[11]*CoreCPITimeSeries[j+9]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[12]*CoreCPITimeSeries[j+10]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[13]*CoreCPITimeSeries[j+11]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[13]*UnemploymentTimeSeries[j+10]
+  laggedrecCoreCPI[i] = laggedrecCoreCPI[i] + Table1$coefficients[13]*UnemploymentTimeSeries[j+11]
+}
+
+plot(y= laggedrecCoreCPI, x = 1:76, type ='l', col="red")
+points(y=CoreCPITimeSeries[165:240], x=1:76, type ='l', col="blue")
+```
+
+
+\pagebreak
+
+
+<h2><b>Conclusion</b></h2>
+
+<span style="display:block; height: 0.1cm;"></span>
+
+Was the Phillip's Curve alive and well in 1995 when the paper was published? How about today?
+
+<span style="display:block; height: 0.1cm;"></span>
+
+The model definitely seems to capture something.
+It was probably well and alive at his publication. But since 1995, it is less true.
+
+

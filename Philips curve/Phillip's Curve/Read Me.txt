@@ -1,0 +1,13 @@
+This project is meant to replicate the research of Jeffrey C. Fuhrer on Phillip's curve. 
+The paper Phillip's curve is well and alive can be found using following link
+https://www.bostonfed.org/publications/new-england-economic-review/1995-issues/issue-march-april-1995/the-phillips-curve-is-alive-and-well.aspx
+
+The data used for this project is in file "Phillips Curve Data.csv"
+The data comprises of Dates (quarter 1 1948 onwards), CPI, employment cost index, GDP deflator and Unemployment rate.
+(The data comprises of a few N/A's)
+
+The code used for the project is PhillipsCurve.R
+(We use R-mark down to generate project report "Validity_Analysis_of_Philips_Curve.pdf)"
+
+The report's conclusion is that the model definitely captures something. The results seem to be better when he published the paper in 1995. since 1995, it seems to be less truer.
+Details can be found in report.
